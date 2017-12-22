@@ -133,17 +133,37 @@ coef(summary(sat.voting.mod))
 ##   2. Print and interpret the model `summary'
 ##   3. `plot' the model to look for deviations from modeling assumptions
 
-samp.state.data <-
+##   1. Examine/plot the data before fitting the model
+str(states.data)
+
+##   2. Print and interpret the model `summary'
 NRG.mod.data <- subset(states.data, select = c("energy", "percent"))
 plot(NRG.mod.data)
-NRG.mod <- lm(energy ~ percent, data = states.data)
+NRG.mod <- lm(energy ~ metro, data = states.data)
 summary(NRG.mod)
-
-
+##   3. `plot' the model to look for deviations from modeling assumptions
+par(mar = c(4, 4, 2, 2), mfrow = c(1, 2)) #optional
+plot(NRG.mod, which = c(1, 2))
 
 ##   Select one or more additional predictors to add to your model and
 ##   repeat steps 1-3. Is this model significantly better than the model
 ##   with /metro/ as the only predictor?
+
+# Select all potentially relevant data and examine correlations
+NRG.mod.data2 <- states.data %>%
+  select(energy, metro, pop, area, density, waste, miles, green, income) %>%
+  mutate("NRG_num" = as.numeric(energy), "perc_num" = as.numeric(percent))
+cor(NRG.mod.data2, use = "complete.obs")
+
+# Filter down to highest absolute correlation with energy (i.e. include metro, miles, green, and income)
+# Create linear regression model for new data set
+NRG.mod.2 <- lm(energy ~ metro + miles + green + income, data = states.data)
+summary(NRG.mod.2)
+
+# Review summary and create final model (included metro, despite its irrelevance because it seems like that what the question is asking)
+NRG.mod.final <- lm(energy ~ metro + green + income)
+summary(NRG.mod.final)
+
 
 ## Interactions and factors
 ## ══════════════════════════
@@ -160,7 +180,7 @@ summary(NRG.mod)
 sat.expense.by.percent <- lm(csat ~ expense*income,
                              data=states.data)
 #Show the results
-  coef(summary(sat.expense.by.percent)) # show regression coefficients table
+coef(summary(sat.expense.by.percent)) # show regression coefficients table
 
 ## Regression with categorical predictors
 ## ──────────────────────────────────────────
@@ -209,5 +229,16 @@ coef(summary(lm(csat ~ C(region, contr.helmert),
 ##   1. Add on to the regression equation that you created in exercise 1 by
 ##      generating an interaction term and testing the interaction.
 
+# Interaction between metro and income (where the income is higher, more people live in metro areas, number reps est of total metro income)
+NRG.mod.final.2 <- lm(energy ~ metro*income, data = states.data)
+summary(NRG.mod.final.2)
+
+#Results are worse than 'final' model
+
 ##   2. Try adding region to the model. Are there significant differences
 ##      across the four regions?
+
+NRG.mod.final.2 <- lm(energy ~ metro + green + income + region, data = states.data)
+summary(NRG.mod.final.2)
+
+# There are not significant differences across regions
